@@ -15,4 +15,5 @@ metadata {
 
 dependencies {
     implementation(rootProject)
+    implementation(platform(project(":hivemq-mqtt-client-quic")))
 }
