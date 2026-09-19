@@ -87,6 +87,14 @@ public interface MqttClientConfig {
     }
 
     /**
+     * @return the optional QUIC configuration of the client.
+     * @since 1.5
+     */
+    default @NotNull Optional<MqttQuicConfig> getQuicConfig() {
+        return getTransportConfig().getQuicConfig();
+    }
+
+    /**
      * @return the transport configuration of the client.
      * @since 1.1
      */

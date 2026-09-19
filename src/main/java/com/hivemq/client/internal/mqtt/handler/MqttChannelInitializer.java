@@ -133,7 +133,7 @@ public class MqttChannelInitializer extends ChannelInboundHandlerAdapter {
         }
     }
 
-    private void initMqtt(final @NotNull Channel channel) {
+    public void initMqtt(final @NotNull Channel channel) {
         channel.pipeline()
                 .addLast(MqttEncoder.NAME, encoder)
                 .addLast(MqttAuthHandler.NAME, authHandler)

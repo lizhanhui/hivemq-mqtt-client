@@ -82,6 +82,12 @@ public interface MqttClientTransportConfig {
     @NotNull Optional<MqttProxyConfig> getProxyConfig();
 
     /**
+     * @return the optional QUIC transport configuration.
+     * @since 1.5
+     */
+    @NotNull Optional<MqttQuicConfig> getQuicConfig();
+
+    /**
      * @return the timeout for connecting the socket to the server in milliseconds.
      * @since 1.2
      */

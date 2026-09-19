@@ -68,6 +68,7 @@ public class MqttClientConfig implements Mqtt5ClientConfig {
     private volatile @Nullable MqttClientConnectionConfig connectionConfig;
     private @NotNull MqttClientTransportConfigImpl currentTransportConfig;
     private @Nullable SslContext currentSslContext;
+    private @Nullable Object currentQuicSslContext;
     private boolean resubscribeIfSessionPresent;
     private boolean resubscribeIfSessionExpired;
     private boolean republishIfSessionExpired;
@@ -245,6 +246,7 @@ public class MqttClientConfig implements Mqtt5ClientConfig {
         if (!this.currentTransportConfig.equals(currentTransportConfig)) {
             this.currentTransportConfig = currentTransportConfig;
             currentSslContext = null;
+            currentQuicSslContext = null;
         }
     }
 
@@ -254,6 +256,14 @@ public class MqttClientConfig implements Mqtt5ClientConfig {
 
     public void setCurrentSslContext(final @Nullable SslContext currentSslContext) {
         this.currentSslContext = currentSslContext;
+    }
+
+    public @Nullable Object getCurrentQuicSslContext() {
+        return currentQuicSslContext;
+    }
+
+    public void setCurrentQuicSslContext(final @Nullable Object currentQuicSslContext) {
+        this.currentQuicSslContext = currentQuicSslContext;
     }
 
     public boolean isResubscribeIfSessionPresent() {

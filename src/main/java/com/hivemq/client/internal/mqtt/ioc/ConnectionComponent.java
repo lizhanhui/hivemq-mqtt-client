@@ -17,6 +17,7 @@
 package com.hivemq.client.internal.mqtt.ioc;
 
 import com.hivemq.client.internal.mqtt.codec.MqttCodecModule;
+import com.hivemq.client.internal.mqtt.handler.MqttChannelInitializer;
 import com.hivemq.client.internal.mqtt.handler.connect.MqttConnAckFlow;
 import com.hivemq.client.internal.mqtt.message.connect.MqttConnect;
 import dagger.BindsInstance;
@@ -34,6 +35,8 @@ import org.jetbrains.annotations.NotNull;
 public interface ConnectionComponent {
 
     @NotNull Bootstrap bootstrap();
+
+    @NotNull MqttChannelInitializer channelInitializer();
 
     @Subcomponent.Builder
     interface Builder {

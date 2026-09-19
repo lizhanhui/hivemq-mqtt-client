@@ -204,6 +204,40 @@ public interface MqttClientTransportConfigBuilderBase<B extends MqttClientTransp
     MqttProxyConfigBuilder.@NotNull Nested<? extends B> proxyConfig();
 
     /**
+     * Sets the {@link MqttClientTransportConfig#getQuicConfig() QUIC transport configuration} to the default
+     * configuration.
+     *
+     * @return the builder.
+     * @since 1.5
+     */
+    @CheckReturnValue
+    @NotNull B quicWithDefaultConfig();
+
+    /**
+     * Sets the optional {@link MqttClientTransportConfig#getQuicConfig() QUIC transport configuration}.
+     *
+     * @param quicConfig the QUIC transport configuration or <code>null</code> to remove any previously set QUIC
+     *                   transport configuration.
+     * @return the builder.
+     * @since 1.5
+     */
+    @CheckReturnValue
+    @NotNull B quicConfig(@Nullable MqttQuicConfig quicConfig);
+
+    /**
+     * Fluent counterpart of {@link #quicConfig(MqttQuicConfig)}.
+     * <p>
+     * Calling {@link MqttQuicConfigBuilder.Nested#applyQuicConfig()} on the returned builder has the effect of extending
+     * the current QUIC transport configuration.
+     *
+     * @return the fluent builder for the QUIC configuration.
+     * @see #quicConfig(MqttQuicConfig)
+     * @since 1.5
+     */
+    @CheckReturnValue
+    MqttQuicConfigBuilder.@NotNull Nested<? extends B> quicConfig();
+
+    /**
      * Sets the {@link MqttClientTransportConfig#getSocketConnectTimeoutMs() timeout for connecting the socket to the
      * server}.
      * <p>

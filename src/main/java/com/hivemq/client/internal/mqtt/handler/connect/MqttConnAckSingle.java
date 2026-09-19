@@ -21,15 +21,17 @@ import com.hivemq.client.internal.logging.InternalLoggerFactory;
 import com.hivemq.client.internal.mqtt.MqttClientConfig;
 import com.hivemq.client.internal.mqtt.MqttClientTransportConfigImpl;
 import com.hivemq.client.internal.mqtt.exceptions.MqttClientStateExceptions;
+import com.hivemq.client.internal.mqtt.handler.quic.MqttQuicConnector;
+import com.hivemq.client.internal.mqtt.ioc.ConnectionComponent;
 import com.hivemq.client.internal.mqtt.lifecycle.MqttClientDisconnectedContextImpl;
 import com.hivemq.client.internal.mqtt.lifecycle.MqttClientReconnector;
 import com.hivemq.client.internal.mqtt.message.connect.MqttConnect;
+import com.hivemq.client.internal.util.ClassUtil;
 import com.hivemq.client.mqtt.exceptions.ConnectionFailedException;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedContext;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttDisconnectSource;
 import com.hivemq.client.mqtt.mqtt5.message.connect.connack.Mqtt5ConnAck;
-import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.EventLoop;
 import io.reactivex.Single;
 import io.reactivex.SingleObserver;
@@ -78,16 +80,28 @@ public class MqttConnAckSingle extends Single<Mqtt5ConnAck> {
             clientConfig.releaseEventLoop();
             clientConfig.getRawState().set(DISCONNECTED);
         } else {
-            final Bootstrap bootstrap = clientConfig.getClientComponent()
+            final ConnectionComponent connectionComponent = clientConfig.getClientComponent()
                     .connectionComponentBuilder()
                     .connect(connect)
                     .connAckFlow(flow)
-                    .build()
-                    .bootstrap();
+                    .build();
 
             final MqttClientTransportConfigImpl transportConfig = clientConfig.getCurrentTransportConfig();
+            if (transportConfig.getRawQuicConfig() != null) {
+                if (!ClassUtil.isAvailable("io.netty.handler.codec.quic.QuicChannel")) {
+                    reconnect(clientConfig, MqttDisconnectSource.CLIENT, new ConnectionFailedException(
+                                    new IllegalStateException(
+                                            "QUIC transport requires the hivemq-mqtt-client-quic module.")), connect,
+                            flow, eventLoop);
+                    return;
+                }
+                MqttQuicConnector.connect(clientConfig, connect, flow, eventLoop,
+                        connectionComponent.channelInitializer());
+                return;
+            }
 
-            bootstrap.group(eventLoop)
+            connectionComponent.bootstrap()
+                    .group(eventLoop)
                     .connect(transportConfig.getRemoteAddress(), transportConfig.getRawLocalAddress())
                     .addListener(future -> {
                         final Throwable cause = future.cause();

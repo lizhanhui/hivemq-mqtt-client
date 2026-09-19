@@ -44,8 +44,9 @@ backpressure support.
     - TLS Session Resumption
     - Default and customizable hostname verification
   - **WebSocket**, Secure WebSocket
+  - **QUIC** (optional module): MQTT packets on a single bidirectional QUIC stream, always TLS 1.3
   - **Proxy**: SOCKS4, SOCKS5, HTTP CONNECT
-  - All possible combinations
+  - All possible combinations except QUIC with WebSocket or proxy
 - Automatic and configurable **thread management**
 - Automatic and configurable **reconnect handling and message redelivery**
 - Automatic and configurable **resubscribe if the session expired**
@@ -110,6 +111,7 @@ dependencies {
   implementation(platform("com.hivemq:hivemq-mqtt-client-websocket:1.4.0"))
   implementation(platform("com.hivemq:hivemq-mqtt-client-proxy:1.4.0"))
   implementation(platform("com.hivemq:hivemq-mqtt-client-epoll:1.4.0"))
+  implementation(platform("com.hivemq:hivemq-mqtt-client-quic:1.4.0"))
   implementation("com.hivemq:hivemq-mqtt-client-reactor:1.4.0")
 }
 ```
@@ -177,6 +179,14 @@ For optional features you can choose to include additional modules:
     <dependencies>
         <dependency>
             <groupId>com.hivemq</groupId>
+            <artifactId>hivemq-mqtt-client-quic</artifactId>
+            <version>1.4.0</version>
+            <type>pom</type>
+        </dependency>
+    </dependencies>
+    <dependencies>
+        <dependency>
+            <groupId>com.hivemq</groupId>
             <artifactId>hivemq-mqtt-client-reactor</artifactId>
             <version>1.4.0</version>
         </dependency>
@@ -189,7 +199,7 @@ For optional features you can choose to include additional modules:
 
 If you are experiencing problems with transitive dependencies, you can try the shaded version.
 This version packs the transitive dependencies which are only used internal under a different package name.
-The shaded version includes the websocket, proxy and epoll modules.
+The shaded version includes the websocket, proxy, epoll and quic modules.
 To use the shaded version just append `-shaded` to the artifact name.
 
 #### Gradle
@@ -235,6 +245,7 @@ dependencies {
   implementation(platform("com.github.hivemq.hivemq-mqtt-client:hivemq-mqtt-client-websocket:develop-SNAPSHOT"))
   implementation(platform("com.github.hivemq.hivemq-mqtt-client:hivemq-mqtt-client-proxy:develop-SNAPSHOT"))
   implementation(platform("com.github.hivemq.hivemq-mqtt-client:hivemq-mqtt-client-epoll:develop-SNAPSHOT"))
+  implementation(platform("com.github.hivemq.hivemq-mqtt-client:hivemq-mqtt-client-quic:develop-SNAPSHOT"))
   implementation("com.github.hivemq.hivemq-mqtt-client:hivemq-mqtt-client-reactor:develop-SNAPSHOT")
 }
 ```
@@ -280,6 +291,14 @@ dependencies {
         <dependency>
             <groupId>com.github.hivemq.hivemq-mqtt-client</groupId>
             <artifactId>hivemq-mqtt-client-epoll</artifactId>
+            <version>develop-SNAPSHOT</version>
+            <type>pom</type>
+        </dependency>
+    </dependencies>
+    <dependencies>
+        <dependency>
+            <groupId>com.github.hivemq.hivemq-mqtt-client</groupId>
+            <artifactId>hivemq-mqtt-client-quic</artifactId>
             <version>develop-SNAPSHOT</version>
             <type>pom</type>
         </dependency>

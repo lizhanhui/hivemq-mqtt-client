@@ -90,9 +90,24 @@ dependencies {
     annotationProcessor(libs.dagger.compiler)
 }
 
+fun nettyNativeClassifier(): String {
+    val osName = System.getProperty("os.name").lowercase()
+    val osArch = System.getProperty("os.arch").lowercase()
+    val os = when {
+        osName.contains("mac") || osName.contains("darwin") -> "osx"
+        osName.contains("win") -> "windows"
+        else -> "linux"
+    }
+    val arch = when {
+        osArch == "aarch64" || osArch == "arm64" -> "aarch_64"
+        else -> "x86_64"
+    }
+    return "$os-$arch"
+}
+
 /* ******************** optional dependencies ******************** */
 
-for (feature in listOf("websocket", "proxy", "epoll")) {
+for (feature in listOf("websocket", "proxy", "epoll", "quic")) {
     java.registerFeature(feature) {
         usingSourceSet(sourceSets["main"])
     }
@@ -102,6 +117,8 @@ dependencies {
     "websocketImplementation"(libs.netty.codec.http)
     "proxyImplementation"(libs.netty.handler.proxy)
     "epollImplementation"(variantOf(libs.netty.transport.native.epoll) { classifier("linux-x86_64") })
+    "quicImplementation"(libs.netty.codec.classes.quic)
+    "quicImplementation"(variantOf(libs.netty.codec.native.quic) { classifier(nettyNativeClassifier()) })
 }
 
 /* ******************** test ******************** */
