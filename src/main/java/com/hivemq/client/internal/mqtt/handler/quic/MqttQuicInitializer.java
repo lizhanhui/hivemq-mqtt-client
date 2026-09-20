@@ -51,7 +51,6 @@ import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.Promise;
 import io.netty.util.concurrent.ScheduledFuture;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import javax.inject.Inject;
 import javax.net.ssl.HostnameVerifier;
@@ -173,9 +172,9 @@ public class MqttQuicInitializer {
         }
 
         final Promise<InetSocketAddress> promise = eventLoop.newPromise();
+        // DefaultAddressResolverGroup caches one resolver per event loop; do not close it
         final AddressResolver<InetSocketAddress> resolver = DefaultAddressResolverGroup.INSTANCE.getResolver(eventLoop);
         resolver.resolve(address).addListener(resolveFuture -> {
-            resolver.close();
             if (resolveFuture.isSuccess()) {
                 final InetSocketAddress resolved = (InetSocketAddress) resolveFuture.getNow();
                 try {
