@@ -423,6 +423,27 @@ publisher.disconnect();
 Runnable versions are in `examples/src/main/java/com/hivemq/client/mqtt/examples/QuicSubscribe.java` and
 `QuicPublish.java`.
 
+If QUIC is not available (missing native library, UDP blocked, or the broker has no QUIC listener), fall back to MQTT
+over TLS on port `8883`. `QuicFallback.java` does that: it tries `.quicWithDefaultConfig()` first, then
+`.sslWithDefaultConfig()` on the same host.
+
+```java
+Mqtt5BlockingClient client;
+try {
+    client = Mqtt5Client.builder()
+            .serverHost("broker.example")
+            .quicWithDefaultConfig()
+            .buildBlocking();
+    client.connect();
+} catch (final RuntimeException quicUnavailable) {
+    client = Mqtt5Client.builder()
+            .serverHost("broker.example")
+            .sslWithDefaultConfig()
+            .buildBlocking();
+    client.connect();
+}
+```
+
 #### Connect
 
 ```java
