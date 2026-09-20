@@ -15,4 +15,11 @@ metadata {
 
 dependencies {
     implementation(rootProject)
+    implementation(platform(project(":hivemq-mqtt-client-quic")))
+}
+
+tasks.register("printRuntimeClasspath") {
+    doLast {
+        println(sourceSets.main.get().runtimeClasspath.asPath)
+    }
 }
