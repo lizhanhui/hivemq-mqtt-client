@@ -21,6 +21,7 @@ import com.hivemq.client.internal.util.InetSocketAddressUtil;
 import com.hivemq.client.mqtt.MqttClientSslConfig;
 import com.hivemq.client.mqtt.MqttClientTransportConfigBuilder;
 import com.hivemq.client.mqtt.MqttProxyConfig;
+import com.hivemq.client.mqtt.MqttQuicConfig;
 import com.hivemq.client.mqtt.MqttWebSocketConfig;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -44,6 +45,7 @@ public abstract class MqttClientTransportConfigImplBuilder<B extends MqttClientT
     private @Nullable MqttClientSslConfigImpl sslConfig;
     private @Nullable MqttWebSocketConfigImpl webSocketConfig;
     private @Nullable MqttProxyConfigImpl proxyConfig;
+    private @Nullable MqttQuicConfigImpl quicConfig;
     private int socketConnectTimeoutMs = MqttClientTransportConfigImpl.DEFAULT_SOCKET_CONNECT_TIMEOUT_MS;
     private int mqttConnectTimeoutMs = MqttClientTransportConfigImpl.DEFAULT_MQTT_CONNECT_TIMEOUT_MS;
 
@@ -61,6 +63,7 @@ public abstract class MqttClientTransportConfigImplBuilder<B extends MqttClientT
         sslConfig = builder.sslConfig;
         webSocketConfig = builder.webSocketConfig;
         proxyConfig = builder.proxyConfig;
+        quicConfig = builder.quicConfig;
         socketConnectTimeoutMs = builder.socketConnectTimeoutMs;
         mqttConnectTimeoutMs = builder.mqttConnectTimeoutMs;
     }
@@ -71,6 +74,7 @@ public abstract class MqttClientTransportConfigImplBuilder<B extends MqttClientT
         sslConfig = transportConfig.getRawSslConfig();
         webSocketConfig = transportConfig.getRawWebSocketConfig();
         proxyConfig = transportConfig.getRawProxyConfig();
+        quicConfig = transportConfig.getRawQuicConfig();
         socketConnectTimeoutMs = transportConfig.getSocketConnectTimeoutMs();
         mqttConnectTimeoutMs = transportConfig.getMqttConnectTimeoutMs();
     }
@@ -215,6 +219,20 @@ public abstract class MqttClientTransportConfigImplBuilder<B extends MqttClientT
         return new MqttProxyConfigImplBuilder.Nested<>(proxyConfig, this::proxyConfig);
     }
 
+    public @NotNull B quicWithDefaultConfig() {
+        this.quicConfig = MqttQuicConfigImpl.DEFAULT;
+        return self();
+    }
+
+    public @NotNull B quicConfig(final @Nullable MqttQuicConfig quicConfig) {
+        this.quicConfig = Checks.notImplementedOrNull(quicConfig, MqttQuicConfigImpl.class, "QUIC config");
+        return self();
+    }
+
+    public MqttQuicConfigImplBuilder.@NotNull Nested<B> quicConfig() {
+        return new MqttQuicConfigImplBuilder.Nested<>(quicConfig, this::quicConfig);
+    }
+
     public @NotNull B socketConnectTimeout(final long timeout, final @Nullable TimeUnit timeUnit) {
         Checks.notNull(timeUnit, "Time unit");
         this.socketConnectTimeoutMs = (int) Checks.range(timeUnit.toMillis(timeout), 0, Integer.MAX_VALUE,
@@ -256,8 +274,20 @@ public abstract class MqttClientTransportConfigImplBuilder<B extends MqttClientT
     }
 
     @NotNull MqttClientTransportConfigImpl buildTransportConfig() {
+        if (quicConfig != null) {
+            if (webSocketConfig != null) {
+                throw new IllegalStateException("A QUIC transport can not be combined with a WebSocket transport.");
+            }
+            if (proxyConfig != null) {
+                throw new IllegalStateException("A QUIC transport can not be combined with a proxy.");
+            }
+            // a QUIC transport always uses TLS 1.3 (also affects the default server port)
+            if (sslConfig == null) {
+                sslConfig = MqttClientSslConfigImpl.DEFAULT;
+            }
+        }
         return new MqttClientTransportConfigImpl(getServerAddress(), localAddress, sslConfig, webSocketConfig,
-                proxyConfig, socketConnectTimeoutMs, mqttConnectTimeoutMs);
+                proxyConfig, quicConfig, socketConnectTimeoutMs, mqttConnectTimeoutMs);
     }
 
     public static class Default extends MqttClientTransportConfigImplBuilder<Default>

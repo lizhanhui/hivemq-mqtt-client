@@ -23,11 +23,14 @@ import com.hivemq.client.internal.mqtt.MqttClientExecutorConfigImpl;
 import com.hivemq.client.internal.util.ClassUtil;
 import io.netty.channel.ChannelFactory;
 import io.netty.channel.EventLoop;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.MultithreadEventLoopGroup;
 import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollDatagramChannel;
+import io.netty.channel.epoll.EpollIoHandler;
 import io.netty.channel.epoll.EpollSocketChannel;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
+import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.ThreadPerTaskExecutor;
@@ -59,14 +62,20 @@ public class NettyEventLoopProvider {
     }
 
     private static NettyEventLoopProvider nioEventLoopProvider() {
-        return new NettyEventLoopProvider(NioEventLoopGroup::new, NioSocketChannel::new);
+        return new NettyEventLoopProvider(
+                (threadCount, executor) ->
+                        new MultiThreadIoEventLoopGroup(threadCount, executor, NioIoHandler.newFactory()),
+                NioSocketChannel::new, NioDatagramChannel::new);
     }
 
     private static class EpollHolder {
 
         private static NettyEventLoopProvider eventLoopProvider() {
             if (Epoll.isAvailable()) {
-                return new NettyEventLoopProvider(EpollEventLoopGroup::new, EpollSocketChannel::new);
+                return new NettyEventLoopProvider(
+                        (threadCount, executor) ->
+                                new MultiThreadIoEventLoopGroup(threadCount, executor, EpollIoHandler.newFactory()),
+                        EpollSocketChannel::new, EpollDatagramChannel::new);
             } else {
                 return nioEventLoopProvider();
             }
@@ -76,13 +85,16 @@ public class NettyEventLoopProvider {
     private final @NotNull Map<@Nullable Executor, @NotNull Entry> entries = new HashMap<>();
     private final @NotNull BiFunction<Integer, Executor, MultithreadEventLoopGroup> eventLoopGroupFactory;
     private final @NotNull ChannelFactory<?> channelFactory;
+    private final @NotNull ChannelFactory<?> datagramChannelFactory;
 
     private NettyEventLoopProvider(
             final @NotNull BiFunction<Integer, Executor, MultithreadEventLoopGroup> eventLoopGroupFactory,
-            final @NotNull ChannelFactory<?> channelFactory) {
+            final @NotNull ChannelFactory<?> channelFactory,
+            final @NotNull ChannelFactory<?> datagramChannelFactory) {
 
         this.eventLoopGroupFactory = eventLoopGroupFactory;
         this.channelFactory = channelFactory;
+        this.datagramChannelFactory = datagramChannelFactory;
     }
 
     public synchronized @NotNull EventLoop acquireEventLoop(final @Nullable Executor executor, final int threadCount) {
@@ -130,6 +142,10 @@ public class NettyEventLoopProvider {
 
     public @NotNull ChannelFactory<?> getChannelFactory() {
         return channelFactory;
+    }
+
+    public @NotNull ChannelFactory<?> getDatagramChannelFactory() {
+        return datagramChannelFactory;
     }
 
     private static class Entry {
