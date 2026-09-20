@@ -100,7 +100,7 @@ If you use Gradle, just include the following inside your `build.gradle(.kts)` f
 
 ```kotlin
 dependencies {
-  implementation("com.hivemq:hivemq-mqtt-client:1.4.0")
+  implementation("com.hivemq:hivemq-mqtt-client:1.5.0-quic.1")
 }
 ```
 
@@ -108,11 +108,11 @@ For optional features you can choose to include additional modules:
 
 ```kotlin
 dependencies {
-  implementation(platform("com.hivemq:hivemq-mqtt-client-websocket:1.4.0"))
-  implementation(platform("com.hivemq:hivemq-mqtt-client-proxy:1.4.0"))
-  implementation(platform("com.hivemq:hivemq-mqtt-client-epoll:1.4.0"))
-  implementation(platform("com.hivemq:hivemq-mqtt-client-quic:1.4.0"))
-  implementation("com.hivemq:hivemq-mqtt-client-reactor:1.4.0")
+  implementation(platform("com.hivemq:hivemq-mqtt-client-websocket:1.5.0-quic.1"))
+  implementation(platform("com.hivemq:hivemq-mqtt-client-proxy:1.5.0-quic.1"))
+  implementation(platform("com.hivemq:hivemq-mqtt-client-epoll:1.5.0-quic.1"))
+  implementation(platform("com.hivemq:hivemq-mqtt-client-quic:1.5.0-quic.1"))
+  implementation("com.hivemq:hivemq-mqtt-client-reactor:1.5.0-quic.1")
 }
 ```
 
@@ -127,7 +127,7 @@ If you use Maven, just include the following inside your `pom.xml` file.
         <dependency>
             <groupId>com.hivemq</groupId>
             <artifactId>hivemq-mqtt-client</artifactId>
-            <version>1.4.0</version>
+            <version>1.5.0-quic.1</version>
         </dependency>
     </dependencies>
     ...
@@ -156,7 +156,7 @@ For optional features you can choose to include additional modules:
         <dependency>
             <groupId>com.hivemq</groupId>
             <artifactId>hivemq-mqtt-client-websocket</artifactId>
-            <version>1.4.0</version>
+            <version>1.5.0-quic.1</version>
             <type>pom</type>
         </dependency>
     </dependencies>
@@ -164,7 +164,7 @@ For optional features you can choose to include additional modules:
         <dependency>
             <groupId>com.hivemq</groupId>
             <artifactId>hivemq-mqtt-client-proxy</artifactId>
-            <version>1.4.0</version>
+            <version>1.5.0-quic.1</version>
             <type>pom</type>
         </dependency>
     </dependencies>
@@ -172,7 +172,7 @@ For optional features you can choose to include additional modules:
         <dependency>
             <groupId>com.hivemq</groupId>
             <artifactId>hivemq-mqtt-client-epoll</artifactId>
-            <version>1.4.0</version>
+            <version>1.5.0-quic.1</version>
             <type>pom</type>
         </dependency>
     </dependencies>
@@ -180,7 +180,7 @@ For optional features you can choose to include additional modules:
         <dependency>
             <groupId>com.hivemq</groupId>
             <artifactId>hivemq-mqtt-client-quic</artifactId>
-            <version>1.4.0</version>
+            <version>1.5.0-quic.1</version>
             <type>pom</type>
         </dependency>
     </dependencies>
@@ -188,7 +188,7 @@ For optional features you can choose to include additional modules:
         <dependency>
             <groupId>com.hivemq</groupId>
             <artifactId>hivemq-mqtt-client-reactor</artifactId>
-            <version>1.4.0</version>
+            <version>1.5.0-quic.1</version>
         </dependency>
     </dependencies>
     ...
@@ -206,7 +206,7 @@ To use the shaded version just append `-shaded` to the artifact name.
 
 ```kotlin
 dependencies {
-  implementation("com.hivemq:hivemq-mqtt-client-shaded:1.4.0")
+  implementation("com.hivemq:hivemq-mqtt-client-shaded:1.5.0-quic.1")
 }
 ```
 
@@ -219,7 +219,7 @@ dependencies {
         <dependency>
             <groupId>com.hivemq</groupId>
             <artifactId>hivemq-mqtt-client-shaded</artifactId>
-            <version>1.4.0</version>
+            <version>1.5.0-quic.1</version>
         </dependency>
     </dependencies>
     ...
