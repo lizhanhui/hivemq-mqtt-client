@@ -18,12 +18,13 @@ package com.hivemq.client.mqtt.examples;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
-import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
 
 import java.nio.charset.StandardCharsets;
 
 /**
  * Publishes to {@code demo/quic} over MQTT over QUIC.
+ * <p>
+ * Usage: {@code QuicPublish [host[:port]] [username] [password]}
  * <p>
  * Run {@link QuicSubscribe} in another process, then start this example. Requires a broker that speaks MQTT over
  * QUIC (TLS 1.3, ALPN {@code mqtt}). If no host is given, {@code localhost:14567} is used. Add the
@@ -34,15 +35,7 @@ import java.nio.charset.StandardCharsets;
 public class QuicPublish {
 
     public static void main(final String[] args) {
-        final String host = (args.length > 0) ? args[0] : "localhost";
-
-        final Mqtt5BlockingClient client = Mqtt5Client.builder()
-                .identifier("quic-publish-example")
-                .serverHost(host)
-                .quicWithDefaultConfig()
-                .buildBlocking();
-
-        client.connect();
+        final Mqtt5BlockingClient client = QuicExample.connect("quic-publish-example", args);
         try {
             for (int i = 0; i < 5; i++) {
                 final String payload = "hello quic " + i;

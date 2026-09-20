@@ -44,6 +44,7 @@ backpressure support.
     - TLS Session Resumption
     - Default and customizable hostname verification
   - **WebSocket**, Secure WebSocket
+  - **QUIC** (MQTT over QUIC, TLS 1.3, default port 14567)
   - **Proxy**: SOCKS4, SOCKS5, HTTP CONNECT
   - All possible combinations
 - Automatic and configurable **thread management**
@@ -381,6 +382,46 @@ client.connect();
 client.publishWith().topic("test/topic").qos(MqttQos.AT_LEAST_ONCE).payload("1".getBytes()).send();
 client.disconnect();
 ```
+
+##### MQTT over QUIC
+
+Add the `hivemq-mqtt-client-quic` module, then enable QUIC on the client builder. The default server port is `14567`.
+A QUIC transport always uses TLS 1.3.
+
+```java
+final Mqtt5BlockingClient subscriber = Mqtt5Client.builder()
+        .identifier("quic-subscribe-example")
+        .serverHost("localhost")
+        .quicWithDefaultConfig()
+        .buildBlocking();
+
+subscriber.connect();
+try (final Mqtt5Publishes publishes = subscriber.publishes(MqttGlobalPublishFilter.ALL)) {
+    subscriber.subscribeWith().topicFilter("demo/quic").qos(MqttQos.AT_LEAST_ONCE).send();
+    publishes.receive(5, TimeUnit.SECONDS).ifPresent(System.out::println);
+} finally {
+    subscriber.disconnect();
+}
+```
+
+```java
+final Mqtt5BlockingClient publisher = Mqtt5Client.builder()
+        .identifier("quic-publish-example")
+        .serverHost("localhost")
+        .quicWithDefaultConfig()
+        .buildBlocking();
+
+publisher.connect();
+publisher.publishWith()
+        .topic("demo/quic")
+        .qos(MqttQos.AT_LEAST_ONCE)
+        .payload("hello quic".getBytes())
+        .send();
+publisher.disconnect();
+```
+
+Runnable versions are in `examples/src/main/java/com/hivemq/client/mqtt/examples/QuicSubscribe.java` and
+`QuicPublish.java`.
 
 #### Connect
 
