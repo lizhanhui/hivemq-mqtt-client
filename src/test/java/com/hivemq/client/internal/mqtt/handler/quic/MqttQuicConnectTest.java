@@ -16,7 +16,11 @@
 
 package com.hivemq.client.internal.mqtt.handler.quic;
 
+import com.hivemq.client.internal.util.ClassUtil;
+import com.hivemq.client.mqtt.MqttClientExecutorConfig;
 import com.hivemq.client.mqtt.MqttClientSslConfig;
+import com.hivemq.client.mqtt.MqttClientState;
+import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
 import com.hivemq.client.mqtt.mqtt5.message.connect.connack.Mqtt5ConnAck;
 import io.netty.bootstrap.Bootstrap;
@@ -28,10 +32,14 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.MultithreadEventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollIoHandler;
 import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.codec.quic.InsecureQuicTokenHandler;
+import io.netty.handler.codec.quic.Quic;
 import io.netty.handler.codec.quic.QuicServerCodecBuilder;
 import io.netty.handler.codec.quic.QuicSslContext;
 import io.netty.handler.codec.quic.QuicSslContextBuilder;
@@ -64,8 +72,11 @@ import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Loopback test: connects a MQTT client over QUIC to an in-process QUIC server and verifies the CONNECT/CONNACK
@@ -86,6 +97,7 @@ class MqttQuicConnectTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        assumeTrue(Quic.isAvailable(), "QUIC native library is not available");
         group = new MultiThreadIoEventLoopGroup(1, NioIoHandler.newFactory());
         serverHandler = new ServerMqttHandler();
 
@@ -177,9 +189,93 @@ class MqttQuicConnectTest {
         client.toBlocking().disconnect();
     }
 
+    @Test
+    @Timeout(30)
+    void reconnectThenSecondClientOnSameEventLoop() throws Exception {
+        final TrustManagerFactory trustManagerFactory = trustManagerFactory();
+        final MultithreadEventLoopGroup clientGroup = newClientEventLoopGroup();
+        final MqttClientExecutorConfig executorConfig =
+                MqttClientExecutorConfig.builder().nettyExecutor(clientGroup).nettyThreads(1).build();
+        final CountDownLatch connectedTwice = new CountDownLatch(2);
+
+        final Mqtt5BlockingClient client1 = Mqtt5Client.builder()
+                .identifier("quic-reconnect-client")
+                .serverHost("localhost")
+                .serverPort(((InetSocketAddress) serverChannel.localAddress()).getPort())
+                .sslConfig(MqttClientSslConfig.builder().trustManagerFactory(trustManagerFactory).build())
+                .quicWithDefaultConfig()
+                .executorConfig(executorConfig)
+                .automaticReconnect()
+                .initialDelay(100, TimeUnit.MILLISECONDS)
+                .maxDelay(200, TimeUnit.MILLISECONDS)
+                .applyAutomaticReconnect()
+                .addConnectedListener(context -> connectedTwice.countDown())
+                .buildBlocking();
+
+        try {
+            final Mqtt5ConnAck connAck = client1.connect();
+            assertFalse(connAck.getReasonCode().isError());
+            assertTrue(serverHandler.connectLatch.await(10, TimeUnit.SECONDS));
+            assertEquals(1, serverHandler.connectCount.get());
+
+            final ChannelHandlerContext firstStream = serverHandler.lastStream.get();
+            assertNotNull(firstStream);
+            // close the QUIC connection (not only the stream) so the client sees a full transport drop
+            firstStream.channel().parent().close().sync();
+
+            assertTrue(serverHandler.secondConnectLatch.await(10, TimeUnit.SECONDS),
+                    "auto-reconnect must resolve again on the shared event loop");
+            assertTrue(connectedTwice.await(10, TimeUnit.SECONDS));
+            assertEquals(MqttClientState.CONNECTED, client1.getState());
+
+            final Mqtt5BlockingClient client2 = Mqtt5Client.builder()
+                    .identifier("quic-second-client")
+                    .serverHost("localhost")
+                    .serverPort(((InetSocketAddress) serverChannel.localAddress()).getPort())
+                    .sslConfig(MqttClientSslConfig.builder().trustManagerFactory(trustManagerFactory).build())
+                    .quicWithDefaultConfig()
+                    .executorConfig(executorConfig)
+                    .buildBlocking();
+            try {
+                final Mqtt5ConnAck connAck2 = client2.connect();
+                assertFalse(connAck2.getReasonCode().isError());
+                assertEquals(MqttClientState.CONNECTED, client2.getState());
+                assertTrue(serverHandler.thirdConnectLatch.await(10, TimeUnit.SECONDS),
+                        "a second client on the same event loop must still resolve");
+            } finally {
+                client2.disconnect();
+            }
+        } finally {
+            client1.disconnect();
+            clientGroup.shutdownGracefully(0, 0, TimeUnit.MILLISECONDS).sync();
+        }
+    }
+
+    private @NotNull TrustManagerFactory trustManagerFactory() throws Exception {
+        final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        keyStore.load(null, null);
+        keyStore.setCertificateEntry("ca", caCertificate);
+        final TrustManagerFactory trustManagerFactory =
+                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init(keyStore);
+        return trustManagerFactory;
+    }
+
+    private static @NotNull MultithreadEventLoopGroup newClientEventLoopGroup() {
+        if (ClassUtil.isAvailable("io.netty.channel.epoll.Epoll") && Epoll.isAvailable()) {
+            return new MultiThreadIoEventLoopGroup(1, EpollIoHandler.newFactory());
+        }
+        return new MultiThreadIoEventLoopGroup(1, NioIoHandler.newFactory());
+    }
+
+    @ChannelHandler.Sharable
     private static class ServerMqttHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
+        final @NotNull AtomicInteger connectCount = new AtomicInteger();
+        final @NotNull AtomicReference<ChannelHandlerContext> lastStream = new AtomicReference<>();
         final @NotNull CountDownLatch connectLatch = new CountDownLatch(1);
+        final @NotNull CountDownLatch secondConnectLatch = new CountDownLatch(2);
+        final @NotNull CountDownLatch thirdConnectLatch = new CountDownLatch(3);
         final @NotNull CountDownLatch publishLatch = new CountDownLatch(1);
         final @NotNull StringBuilder publishPayload = new StringBuilder();
 
@@ -187,8 +283,12 @@ class MqttQuicConnectTest {
         protected void channelRead0(final @NotNull ChannelHandlerContext ctx, final @NotNull ByteBuf msg) {
             final int packetType = msg.getUnsignedByte(0) >> 4;
             if (packetType == 1) { // CONNECT
+                connectCount.incrementAndGet();
+                lastStream.set(ctx);
                 connectLatch.countDown();
-                ctx.writeAndFlush(Unpooled.wrappedBuffer(CONNACK));
+                secondConnectLatch.countDown();
+                thirdConnectLatch.countDown();
+                ctx.writeAndFlush(Unpooled.copiedBuffer(CONNACK));
             } else if (packetType == 3) { // PUBLISH
                 publishPayload.append(new String(ByteBufUtil.getBytes(msg), StandardCharsets.UTF_8));
                 publishLatch.countDown();
