@@ -49,6 +49,12 @@ public interface MqttClient {
      * The default server port when using SSL/TLS and WebSocket.
      */
     int DEFAULT_SERVER_PORT_WEBSOCKET_SSL = 443;
+    /**
+     * The default server port when using QUIC.
+     *
+     * @since 1.5
+     */
+    int DEFAULT_SERVER_PORT_QUIC = 14567;
 
     /**
      * Creates a builder for an MQTT client.
