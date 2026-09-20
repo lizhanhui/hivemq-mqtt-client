@@ -208,7 +208,8 @@ public interface MqttClientTransportConfigBuilderBase<B extends MqttClientTransp
      * configuration.
      * <p>
      * A QUIC transport always uses TLS 1.3. If no {@link #sslConfig(MqttClientSslConfig) secure transport
-     * configuration} is set, the default secure transport configuration is used.
+     * configuration} is set, the default secure transport configuration is used. If no
+     * {@link #serverPort(int) server port} is set, {@link MqttClient#DEFAULT_SERVER_PORT_QUIC 14567} is used.
      * <p>
      * A QUIC transport can not be combined with a {@link #webSocketConfig(MqttWebSocketConfig) WebSocket transport}
      * or a {@link #proxyConfig(MqttProxyConfig) proxy}.

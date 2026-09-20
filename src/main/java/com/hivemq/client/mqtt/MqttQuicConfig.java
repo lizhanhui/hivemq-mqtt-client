@@ -24,7 +24,8 @@ import org.jetbrains.annotations.NotNull;
  * Configuration for a QUIC transport to use by {@link MqttClient MQTT clients}.
  * <p>
  * A QUIC transport always uses TLS 1.3, so a {@link MqttClientSslConfig} applies as well. If none is configured, the
- * default secure transport configuration is used.
+ * default secure transport configuration is used. If no server port is configured,
+ * {@link MqttClient#DEFAULT_SERVER_PORT_QUIC 14567} is used.
  * <p>
  * A QUIC transport can not be combined with a WebSocket transport or a proxy.
  *

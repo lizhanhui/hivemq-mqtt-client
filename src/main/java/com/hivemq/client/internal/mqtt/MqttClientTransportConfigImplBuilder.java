@@ -261,6 +261,9 @@ public abstract class MqttClientTransportConfigImplBuilder<B extends MqttClientT
         if (serverPort != -1) {
             return serverPort;
         }
+        if (quicConfig != null) {
+            return DEFAULT_SERVER_PORT_QUIC;
+        }
         if (sslConfig == null) {
             if (webSocketConfig == null) {
                 return DEFAULT_SERVER_PORT;
@@ -281,7 +284,7 @@ public abstract class MqttClientTransportConfigImplBuilder<B extends MqttClientT
             if (proxyConfig != null) {
                 throw new IllegalStateException("A QUIC transport can not be combined with a proxy.");
             }
-            // a QUIC transport always uses TLS 1.3 (also affects the default server port)
+            // a QUIC transport always uses TLS 1.3
             if (sslConfig == null) {
                 sslConfig = MqttClientSslConfigImpl.DEFAULT;
             }

@@ -16,6 +16,7 @@
 
 package com.hivemq.client.internal.mqtt;
 
+import com.hivemq.client.mqtt.MqttClient;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -32,6 +33,22 @@ class MqttClientTransportConfigImplQuicTest {
 
         assertTrue(transportConfig.getQuicConfig().isPresent());
         assertEquals(MqttQuicConfigImpl.DEFAULT, transportConfig.getRawQuicConfig());
+    }
+
+    @Test
+    void quic_defaults_to_quic_port() {
+        final MqttClientTransportConfigImpl transportConfig =
+                new MqttClientTransportConfigImplBuilder.Default().quicWithDefaultConfig().build();
+
+        assertEquals(MqttClient.DEFAULT_SERVER_PORT_QUIC, transportConfig.getServerAddress().getPort());
+    }
+
+    @Test
+    void quic_keeps_explicit_port() {
+        final MqttClientTransportConfigImpl transportConfig =
+                new MqttClientTransportConfigImplBuilder.Default().serverPort(443).quicWithDefaultConfig().build();
+
+        assertEquals(443, transportConfig.getServerAddress().getPort());
     }
 
     @Test
