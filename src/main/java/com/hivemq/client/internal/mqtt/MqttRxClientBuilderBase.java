@@ -120,6 +120,18 @@ public abstract class MqttRxClientBuilderBase<B extends MqttRxClientBuilderBase<
         return super.webSocketConfig(webSocketConfig);
     }
 
+    @Override
+    public @NotNull B quicWithDefaultConfig() {
+        transportConfig = null;
+        return super.quicWithDefaultConfig();
+    }
+
+    @Override
+    public @NotNull B quicConfig(final @Nullable MqttQuicConfig quicConfig) {
+        transportConfig = null;
+        return super.quicConfig(quicConfig);
+    }
+
     public @NotNull B transportConfig(final @Nullable MqttClientTransportConfig transportConfig) {
         this.transportConfig =
                 Checks.notImplemented(transportConfig, MqttClientTransportConfigImpl.class, "Transport config");

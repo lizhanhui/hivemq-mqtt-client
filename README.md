@@ -110,6 +110,7 @@ dependencies {
   implementation(platform("com.hivemq:hivemq-mqtt-client-websocket:1.4.0"))
   implementation(platform("com.hivemq:hivemq-mqtt-client-proxy:1.4.0"))
   implementation(platform("com.hivemq:hivemq-mqtt-client-epoll:1.4.0"))
+  implementation(platform("com.hivemq:hivemq-mqtt-client-quic:1.4.0"))
   implementation("com.hivemq:hivemq-mqtt-client-reactor:1.4.0")
 }
 ```
@@ -177,6 +178,14 @@ For optional features you can choose to include additional modules:
     <dependencies>
         <dependency>
             <groupId>com.hivemq</groupId>
+            <artifactId>hivemq-mqtt-client-quic</artifactId>
+            <version>1.4.0</version>
+            <type>pom</type>
+        </dependency>
+    </dependencies>
+    <dependencies>
+        <dependency>
+            <groupId>com.hivemq</groupId>
             <artifactId>hivemq-mqtt-client-reactor</artifactId>
             <version>1.4.0</version>
         </dependency>
@@ -189,7 +198,7 @@ For optional features you can choose to include additional modules:
 
 If you are experiencing problems with transitive dependencies, you can try the shaded version.
 This version packs the transitive dependencies which are only used internal under a different package name.
-The shaded version includes the websocket, proxy and epoll modules.
+The shaded version includes the websocket, proxy, epoll and quic modules.
 To use the shaded version just append `-shaded` to the artifact name.
 
 #### Gradle

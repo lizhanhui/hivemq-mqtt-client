@@ -92,7 +92,7 @@ dependencies {
 
 /* ******************** optional dependencies ******************** */
 
-for (feature in listOf("websocket", "proxy", "epoll")) {
+for (feature in listOf("websocket", "proxy", "epoll", "quic")) {
     java.registerFeature(feature) {
         usingSourceSet(sourceSets["main"])
     }
@@ -102,6 +102,8 @@ dependencies {
     "websocketImplementation"(libs.netty.codec.http)
     "proxyImplementation"(libs.netty.handler.proxy)
     "epollImplementation"(variantOf(libs.netty.transport.native.epoll) { classifier("linux-x86_64") })
+    "quicImplementation"(libs.netty.codec.classes.quic)
+    "quicImplementation"(variantOf(libs.netty.codec.native.quic) { classifier("linux-x86_64") })
 }
 
 /* ******************** test ******************** */
@@ -134,6 +136,10 @@ dependencies {
     testImplementation(libs.bouncycastle.pkix)
     testImplementation(libs.bouncycastle.prov)
     testImplementation(libs.paho.client)
+    testImplementation(libs.netty.codec.classes.quic)
+    // QUIC natives for dev machines (macOS arm64) and CI (linux x86_64)
+    testRuntimeOnly(variantOf(libs.netty.codec.native.quic) { classifier("osx-aarch_64") })
+    testRuntimeOnly(variantOf(libs.netty.codec.native.quic) { classifier("linux-x86_64") })
     // EqualsVerifier reflects on @NotNull/@Nullable at runtime; compileOnlyApi is compile-only,
     // so the annotations must be added to the test runtime classpath explicitly.
     testRuntimeOnly(libs.jetbrains.annotations)
@@ -218,6 +224,17 @@ allprojects {
             withSourcesJar()
         }
         plugins.apply("io.github.sgtsilvio.gradle.javadoc-links")
+        tasks.javadocLinks {
+            urlProvider = { id ->
+                // javadoc.io does not provide javadoc for all netty modules (e.g. netty-codec since 4.2),
+                // netty.io hosts the aggregated javadoc instead
+                if (id.group == "io.netty") {
+                    "https://netty.io/4.2/api/"
+                } else {
+                    "https://javadoc.io/doc/${id.group}/${id.name}/${id.version}/"
+                }
+            }
+        }
         tasks.javadoc {
             exclude("**/internal/**")
         }

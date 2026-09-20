@@ -32,13 +32,14 @@ public class MqttClientTransportConfigImpl implements MqttClientTransportConfig 
 
     public static final @NotNull MqttClientTransportConfigImpl DEFAULT = new MqttClientTransportConfigImpl(
             InetSocketAddressUtil.create(MqttClient.DEFAULT_SERVER_HOST, MqttClient.DEFAULT_SERVER_PORT), null, null,
-            null, null, DEFAULT_SOCKET_CONNECT_TIMEOUT_MS, DEFAULT_MQTT_CONNECT_TIMEOUT_MS);
+            null, null, null, DEFAULT_SOCKET_CONNECT_TIMEOUT_MS, DEFAULT_MQTT_CONNECT_TIMEOUT_MS);
 
     private final @NotNull InetSocketAddress serverAddress;
     private final @Nullable InetSocketAddress localAddress;
     private final @Nullable MqttClientSslConfigImpl sslConfig;
     private final @Nullable MqttWebSocketConfigImpl webSocketConfig;
     private final @Nullable MqttProxyConfigImpl proxyConfig;
+    private final @Nullable MqttQuicConfigImpl quicConfig;
     private final int socketConnectTimeoutMs;
     private final int mqttConnectTimeoutMs;
 
@@ -48,6 +49,7 @@ public class MqttClientTransportConfigImpl implements MqttClientTransportConfig 
             final @Nullable MqttClientSslConfigImpl sslConfig,
             final @Nullable MqttWebSocketConfigImpl webSocketConfig,
             final @Nullable MqttProxyConfigImpl proxyConfig,
+            final @Nullable MqttQuicConfigImpl quicConfig,
             final int socketConnectTimeoutMs,
             final int mqttConnectTimeoutMs) {
 
@@ -56,6 +58,7 @@ public class MqttClientTransportConfigImpl implements MqttClientTransportConfig 
         this.sslConfig = sslConfig;
         this.webSocketConfig = webSocketConfig;
         this.proxyConfig = proxyConfig;
+        this.quicConfig = quicConfig;
         this.socketConnectTimeoutMs = socketConnectTimeoutMs;
         this.mqttConnectTimeoutMs = mqttConnectTimeoutMs;
     }
@@ -106,6 +109,15 @@ public class MqttClientTransportConfigImpl implements MqttClientTransportConfig 
     }
 
     @Override
+    public @NotNull Optional<MqttQuicConfig> getQuicConfig() {
+        return Optional.ofNullable(quicConfig);
+    }
+
+    public @Nullable MqttQuicConfigImpl getRawQuicConfig() {
+        return quicConfig;
+    }
+
+    @Override
     public int getSocketConnectTimeoutMs() {
         return socketConnectTimeoutMs;
     }
@@ -132,7 +144,7 @@ public class MqttClientTransportConfigImpl implements MqttClientTransportConfig 
 
         return serverAddress.equals(that.serverAddress) && Objects.equals(localAddress, that.localAddress) &&
                 Objects.equals(sslConfig, that.sslConfig) && Objects.equals(webSocketConfig, that.webSocketConfig) &&
-                Objects.equals(proxyConfig, that.proxyConfig) &&
+                Objects.equals(proxyConfig, that.proxyConfig) && Objects.equals(quicConfig, that.quicConfig) &&
                 (socketConnectTimeoutMs == that.socketConnectTimeoutMs) &&
                 (mqttConnectTimeoutMs == that.mqttConnectTimeoutMs);
     }
@@ -144,6 +156,7 @@ public class MqttClientTransportConfigImpl implements MqttClientTransportConfig 
         result = 31 * result + Objects.hashCode(sslConfig);
         result = 31 * result + Objects.hashCode(webSocketConfig);
         result = 31 * result + Objects.hashCode(proxyConfig);
+        result = 31 * result + Objects.hashCode(quicConfig);
         result = 31 * result + Integer.hashCode(socketConnectTimeoutMs);
         result = 31 * result + Integer.hashCode(mqttConnectTimeoutMs);
         return result;
