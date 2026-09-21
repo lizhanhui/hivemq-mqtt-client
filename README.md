@@ -112,6 +112,8 @@ dependencies {
   implementation(platform("com.hivemq:hivemq-mqtt-client-proxy:1.5.0-quic.1"))
   implementation(platform("com.hivemq:hivemq-mqtt-client-epoll:1.5.0-quic.1"))
   implementation(platform("com.hivemq:hivemq-mqtt-client-quic:1.5.0-quic.1"))
+  // Android QUIC: use this instead of hivemq-mqtt-client-quic (do not mix with linux-aarch_64)
+  // implementation(platform("com.hivemq:hivemq-mqtt-client-quic-android:1.5.0-quic.1"))
   implementation("com.hivemq:hivemq-mqtt-client-reactor:1.5.0-quic.1")
 }
 ```
@@ -180,6 +182,14 @@ For optional features you can choose to include additional modules:
         <dependency>
             <groupId>com.hivemq</groupId>
             <artifactId>hivemq-mqtt-client-quic</artifactId>
+            <version>1.5.0-quic.1</version>
+            <type>pom</type>
+        </dependency>
+    </dependencies>
+    <dependencies>
+        <dependency>
+            <groupId>com.hivemq</groupId>
+            <artifactId>hivemq-mqtt-client-quic-android</artifactId>
             <version>1.5.0-quic.1</version>
             <type>pom</type>
         </dependency>
@@ -422,6 +432,32 @@ publisher.disconnect();
 
 Runnable versions are in `examples/src/main/java/com/hivemq/client/mqtt/examples/QuicSubscribe.java` and
 `QuicPublish.java`.
+
+##### MQTT over QUIC on Android
+
+Do **not** use `hivemq-mqtt-client-quic` or `hivemq-mqtt-client-shaded` on Android. Those pull glibc
+`linux-aarch_64` natives. Android `os.name` is `Linux`, but the ABI is bionic; those `.so` files will not
+`dlopen`. Use NIO UDP (the default when epoll is absent) plus the Android QUIC AAR:
+
+```kotlin
+repositories {
+    mavenCentral()
+    mavenLocal() // after `mvn install` of the Netty Android fork that publishes the AAR
+}
+
+dependencies {
+    implementation("com.hivemq:hivemq-mqtt-client:1.5.0-quic.1")
+    implementation(platform("com.hivemq:hivemq-mqtt-client-quic-android:1.5.0-quic.1"))
+}
+```
+
+The platform brings `netty-codec-classes-quic` and
+`netty-codec-native-quic:…:android@aar` (`jni/arm64-v8a` and `jni/armeabi-v7a`, including
+`libnetty_quiche42.so` and `libc++_shared.so`). Enable QUIC the same way as on the JVM:
+`.quicWithDefaultConfig()`.
+
+`INTERNET` is required. minSdk **21** matches the AAR. Do not also depend on
+`netty-codec-native-quic` with classifier `linux-aarch_64`.
 
 If QUIC is not available (missing native library, UDP blocked, or the broker has no QUIC listener), fall back to MQTT
 over TLS on port `8883`. `QuicFallback.java` does that: it tries `.quicWithDefaultConfig()` first, then

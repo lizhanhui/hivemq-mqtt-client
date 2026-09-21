@@ -29,6 +29,7 @@ import com.hivemq.client.internal.mqtt.handler.disconnect.MqttDisconnectHandler;
 import com.hivemq.client.internal.mqtt.ioc.ConnectionScope;
 import com.hivemq.client.internal.mqtt.message.connect.MqttConnect;
 import com.hivemq.client.internal.netty.NettyEventLoopProvider;
+import com.hivemq.client.internal.util.RuntimePlatform;
 import com.hivemq.client.mqtt.exceptions.ConnectionFailedException;
 import com.hivemq.client.mqtt.lifecycle.MqttDisconnectSource;
 import io.netty.bootstrap.Bootstrap;
@@ -51,9 +52,11 @@ import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.Promise;
 import io.netty.util.concurrent.ScheduledFuture;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.inject.Inject;
 import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLException;
 import java.net.ConnectException;
 import java.net.InetAddress;
@@ -110,7 +113,9 @@ public class MqttQuicInitializer {
     public void connect(final @NotNull EventLoop eventLoop) {
         if (!Quic.isAvailable()) {
             onError(eventLoop, new UnsupportedOperationException(
-                    "QUIC is not available. Add the platform specific netty-codec-native-quic dependency."));
+                    "QUIC is not available. On Android add hivemq-mqtt-client-quic-android " +
+                            "(netty-codec-native-quic android AAR with jni/<abi>/libnetty_quiche42.so). " +
+                            "On JVM add hivemq-mqtt-client-quic. Do not use linux-aarch_64 natives on Android."));
             return;
         }
 
@@ -252,7 +257,7 @@ public class MqttQuicInitializer {
             final @NotNull MqttClientSslConfigImpl sslConfig,
             final @NotNull EventLoop eventLoop) {
 
-        final HostnameVerifier hostnameVerifier = sslConfig.getRawHostnameVerifier();
+        final HostnameVerifier hostnameVerifier = hostnameVerifierForHandshake(sslConfig);
         if (hostnameVerifier != null) {
             final String host = transportConfig.getServerAddress().getHostString();
             final boolean verified;
@@ -309,7 +314,25 @@ public class MqttQuicInitializer {
                 .keyManager(sslConfig.getRawKeyManagerFactory(), null)
                 .applicationProtocols(ALPN)
                 .endpointIdentificationAlgorithm(
-                        (sslConfig.getRawHostnameVerifier() == null) ? ENDPOINT_IDENTIFICATION_ALGORITHM : null)
+                        usesJdkEndpointIdentification(sslConfig) ? ENDPOINT_IDENTIFICATION_ALGORITHM : null)
                 .build();
+    }
+
+    /**
+     * Netty QUIC requires {@link javax.net.ssl.X509ExtendedTrustManager} for HTTPS endpoint identification.
+     * Android API &lt; 24 does not provide that type, so skip it and verify after the handshake instead.
+     */
+    static boolean usesJdkEndpointIdentification(final @NotNull MqttClientSslConfigImpl sslConfig) {
+        return (sslConfig.getRawHostnameVerifier() == null) && !RuntimePlatform.isAndroid();
+    }
+
+    static @Nullable HostnameVerifier hostnameVerifierForHandshake(final @NotNull MqttClientSslConfigImpl sslConfig) {
+        if (sslConfig.getRawHostnameVerifier() != null) {
+            return sslConfig.getRawHostnameVerifier();
+        }
+        if (RuntimePlatform.isAndroid()) {
+            return HttpsURLConnection.getDefaultHostnameVerifier();
+        }
+        return null;
     }
 }
